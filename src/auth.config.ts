@@ -61,9 +61,11 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session }) {
-      // session.accessToken = token.accessToken;
-      // session.provider = token.provider;
+    async session({ session, token }) {
+      if (token) {
+        session.accessToken = token.accessToken;
+        session.provider = token.provider;
+      }
       return session;
     },
   },
