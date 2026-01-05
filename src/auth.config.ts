@@ -1,10 +1,46 @@
-import { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import AppleProvider from "next-auth/providers/apple";
 import CredentialsProvider from "next-auth/providers/credentials";
 import FacebookProvider from "next-auth/providers/facebook";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import LinkedInProvider from "next-auth/providers/linkedin";
+import { getApiUrl } from "./service/api_endpoints";
+import { jwtDecode } from "jwt-decode";
+function getTokenExpiry(token: string) {
+  const decoded: { exp: number } = jwtDecode(token);
+  return decoded.exp * 1000;
+}
+
+//this call is serverside so needed here
+async function refreshAccessToken(token: any) {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/users/refresh`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token.refreshToken}`,
+        },
+      }
+    );
+    const refreshed = await response.json();
+
+    if (!response.ok) throw refreshed;
+
+    return {
+      ...token,
+      accessToken: refreshed.data.accessToken,
+      refreshToken: refreshed.data.refreshToken ?? token.refreshToken,
+      accessTokenExpires: getTokenExpiry(refreshed.data.accessToken),
+    };
+  } catch (error) {
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -31,7 +67,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: {
+        email: {
           label: "Email",
           type: "text",
           placeholder: "Enter your email",
@@ -43,9 +79,27 @@ export const authOptions: NextAuthOptions = {
         },
       },
       async authorize(credentials) {
-        console.log({ credentials });
-        const user = { id: "1", name: "J Smith", email: "jsmith@example.com" };
-        return await Promise.resolve(user);
+        const LOGIN_ENDPOINT = getApiUrl("LOGIN");
+        const res = await fetch(LOGIN_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(credentials),
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+
+        const { user, accessToken, refreshToken } = data.data;
+
+        return {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          accessToken,
+          refreshToken,
+        };
       },
     }),
   ],
@@ -53,19 +107,37 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, account }) {
-      console.log({ token, account });
-      if (account) {
-        token.accessToken = account.access_token;
-        token.provider = account.provider;
+    async jwt({ token, user }) {
+      if (user) {
+        const accessToken = (user as any).accessToken;
+
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = (user as any).role;
+        token.accessToken = accessToken;
+        token.refreshToken = (user as any).refreshToken;
+        token.accessTokenExpires = getTokenExpiry(accessToken);
+
+        return token;
       }
-      return token;
+
+      if (Date.now() < token.accessTokenExpires!) {
+        return token;
+      }
+
+      return await refreshAccessToken(token);
     },
+
     async session({ session, token }) {
-      if (token) {
-        session.accessToken = token.accessToken;
-        session.provider = token.provider;
-      }
+      session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
+      session.user = {
+        id: token.id as string,
+        name: token.name as string,
+        email: token.email as string,
+        role: token.role as string,
+      };
       return session;
     },
   },
@@ -77,3 +149,5 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,
 };
+
+export const { auth } = NextAuth(authOptions);

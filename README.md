@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Here’s a clean, well-structured **README.md** you can use for your project. I’ve kept it clear, technical, and suitable for a Next.js + service-layer architecture.
 
-## Getting Started
+---
 
-First, run the development server:
+# Project Architecture & API Usage Guide
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+This project follows a **clean service-based architecture** to separate concerns between routing, business logic, validation, and API communication.
+
+---
+
+## 📁 Folder Structure Overview
+
+```
+src/
+├── service/
+│   ├── api_endpoints.ts
+│   ├── auth.service.ts
+│   ├── user.service.ts
+│   └── ...
+├── utils/
+│   ├── yup.ts/
+├──lib
+│   ├── fetchClient.ts
+│   └── fetchServer.ts
+└── ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔗 API Endpoints
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* **All API route endpoints are defined inside the `service` folder**.
+* Endpoints must be accessed using the `getApiUrl` helper function.
 
-## Learn More
+### Example
 
-To learn more about Next.js, take a look at the following resources:
+```ts
+import { getApiUrl } from "@/service/api_endpoints";
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+const LOGIN_URL = getApiUrl("LOGIN");
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This ensures:
 
-## Deploy on Vercel
+* Centralized endpoint management
+* Easy updates across the application
+* No hardcoded URLs in components or pages
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🧠 Business Logic & API Calls
+
+* **All business logic and API calls live inside the `service` folder**.
+* UI components/pages should **only call service functions**, not APIs directly.
+* This keeps components clean and focused on rendering.
+
+### Example
+
+```ts
+// service/auth.service.ts
+export async function login(payload: LoginPayload) {
+  const url = getApiUrl("LOGIN");
+  return fetchClient(url, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+```
+
+---
+
+## 🖥️ Backend API Calls (Next.js BE)
+
+* All API requests are made **from the Next.js Backend (API routes / server actions)**.
+* This helps with:
+
+  * Secure token handling
+  * Better control over authentication
+  * Server-side validation and error handling
+
+---
+
+## ✅ Validation
+
+* **All validations are handled using `yup`**
+* Validation schemas are located in:
+
+```
+utils/validations/
+```
+
+* Each feature has its own validation file to keep rules isolated and reusable.
+
+### Example
+
+```ts
+// utils/validations/login.yup.ts
+import * as yup from "yup";
+
+export const loginSchema = yup.object({
+  email: yup.string().email().required(),
+  password: yup.string().required(),
+});
+```
+
+---
+
+## 🌐 API Fetch Utilities
+
+To standardize API communication, two fetch utilities are provided:
+
+### 1. `fetchClient`
+
+* Used for **client-side API calls**
+* Automatically handles headers, tokens, and errors
+
+### 2. `fetchServer`
+
+* Used for **server-side API calls**
+* Suitable for API routes, server actions, and SSR
+
+This ensures:
+
+* Consistent API handling
+* Centralized error and auth logic
+* Less duplicated code
+
+---
+
+## 🧩 Key Benefits of This Architecture
+
+* ✅ Centralized API endpoints
+* ✅ Clear separation of concerns
+* ✅ Reusable validation logic
+* ✅ Secure backend-driven API calls
+* ✅ Scalable and maintainable structure

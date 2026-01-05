@@ -1,47 +1,76 @@
 "use client";
 
-import { loginSchema } from "@/utils/yup";
+import { registerSchema } from "@/utils/yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 
+type FormData = yup.InferType<typeof registerSchema>;
 
-type FormData = yup.InferType<typeof loginSchema>;
-
-export default function SignIn() {
-  const [loginError, setLoginError] = useState<string | null>(null);
+export default function SignUp() {
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: yupResolver(loginSchema),
+    resolver: yupResolver(registerSchema),
   });
 
   const onSubmit = async (data: FormData) => {
-    setLoginError(null);
+    setError(null);
+    setSuccess(null);
 
-    const res = await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      redirect: false,
-      callbackUrl: "/",
-    });
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    if (res?.error) {
-      setLoginError("Invalid email or password");
-    } else if (res?.ok) {
-      window.location.href = res.url || "/";
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Registration failed");
+      }
+
+      setSuccess("Account created successfully. Please login.");
+
+      router.push("/signin");
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
+
   return (
     <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-      {loginError && <div>{loginError}</div>}
+      {error && <div className="text-red-500">{error}</div>}
+      {success && <div className="text-green-600">{success}</div>}{" "}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div>
+          <label htmlFor="email" className="block text-sm/6 font-medium ">
+            Name
+          </label>
+          <div className="mt-2">
+            <input
+              id="name"
+              type="text"
+              required
+              {...register("name")}
+              autoComplete="name"
+              className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+            />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+            )}
+          </div>
+        </div>
         <div>
           <label htmlFor="email" className="block text-sm/6 font-medium ">
             Email address
@@ -68,14 +97,6 @@ export default function SignIn() {
             <label htmlFor="password" className="block text-sm/6 font-medium ">
               Password
             </label>
-            <div className="text-sm">
-              <a
-                href="#"
-                className="font-semibold text-indigo-600 hover:text-indigo-500"
-              >
-                Forgot password?
-              </a>
-            </div>
           </div>
           <div className="mt-2">
             <input
