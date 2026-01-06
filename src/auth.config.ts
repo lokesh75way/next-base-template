@@ -7,13 +7,14 @@ import GoogleProvider from "next-auth/providers/google";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import { getApiUrl } from "./service/api_endpoints";
 import { jwtDecode } from "jwt-decode";
+import { JWT } from "next-auth/jwt";
 function getTokenExpiry(token: string) {
   const decoded: { exp: number } = jwtDecode(token);
   return decoded.exp * 1000;
 }
 
 //this call is serverside so needed here
-async function refreshAccessToken(token: any) {
+async function refreshAccessToken(token: JWT) {
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/users/refresh`,
@@ -35,6 +36,7 @@ async function refreshAccessToken(token: any) {
       accessTokenExpires: getTokenExpiry(refreshed.data.accessToken),
     };
   } catch (error) {
+    console.log({ error });
     return {
       ...token,
       error: "RefreshAccessTokenError",
@@ -109,15 +111,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const accessToken = (user as any).accessToken;
+        const accessToken = user.accessToken;
 
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.role = (user as any).role;
+        token.role = user.role;
         token.accessToken = accessToken;
-        token.refreshToken = (user as any).refreshToken;
-        token.accessTokenExpires = getTokenExpiry(accessToken);
+        token.refreshToken = user.refreshToken;
+        token.accessTokenExpires = getTokenExpiry(accessToken!);
 
         return token;
       }

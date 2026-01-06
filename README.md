@@ -14,14 +14,16 @@ This project follows a **clean service-based architecture** to separate concerns
 src/
 ├── service/
 │   ├── api_endpoints.ts
-│   ├── auth.service.ts
-│   ├── user.service.ts
+│   ├── auth.ts
 │   └── ...
 ├── utils/
-│   ├── yup.ts/
+│   └── yup.ts/
 ├──lib
 │   ├── fetchClient.ts
 │   └── fetchServer.ts
+├──constants/
+│   └── routes.ts
+├── middleware.ts
 └── ...
 ```
 
@@ -124,6 +126,97 @@ This ensures:
 * Consistent API handling
 * Centralized error and auth logic
 * Less duplicated code
+---
+
+## 🔐 Route Management & Authorization (RBAC)
+
+This project uses a **centralized route management system** with **authentication and role-based access control (RBAC)**.
+
+---
+
+### 📍 Route Constants
+
+All routes are defined in:
+
+```
+src/constants/routes.ts
+```
+
+```ts
+export const PUBLIC_ROUTES = [
+  "/signin",
+  "/signup",
+];
+
+const COMMON_PROTECTED_ROUTES = ["/"];
+
+const ADMIN_ROUES = ["/admin", ...COMMON_PROTECTED_ROUTES];
+const USER_ROUTES = [...COMMON_PROTECTED_ROUTES];
+
+
+export const ROLE_ROUTES: Record<string, string[]> = {
+  ADMIN: ADMIN_ROUES,
+  USER: USER_ROUTES,
+};
+
+```
+
+#### Route Types
+
+* **Public Routes**
+
+  * Accessible without authentication
+* **Protected Routes**
+
+  * Require authentication
+* **Role-Based Routes**
+
+  * Accessible only to specific user roles
+
+---
+
+### 🧠 Middleware-Based Access Control
+
+Authentication and authorization are enforced using **NextAuth middleware**:
+
+```
+src/middleware.ts
+```
+
+Responsibilities of middleware:
+
+* Allow public routes
+* Redirect unauthenticated users to `/signin`
+* Enforce role-based access
+* Redirect unauthorized users to `/403`
+
+### Flow
+
+```
+Request
+  ↓
+Check Public Route
+  ↓
+Check Authentication
+  ↓
+Check Role Permission
+  ↓
+Allow or Redirect (403 / signin)
+```
+
+---
+
+### 🚫 403 Forbidden Page
+
+A custom **403 Forbidden page** is implemented at:
+
+```
+src/app/403/page.tsx
+```
+
+* Shown when a user is authenticated but lacks permission
+* Treated as a public route to prevent redirect loops
+
 
 ---
 
@@ -133,4 +226,6 @@ This ensures:
 * ✅ Clear separation of concerns
 * ✅ Reusable validation logic
 * ✅ Secure backend-driven API calls
+* ✅ Centralized route & role management
+* ✅ Middleware-enforced RBAC
 * ✅ Scalable and maintainable structure

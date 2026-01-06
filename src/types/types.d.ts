@@ -5,7 +5,7 @@ interface RegisterPayload {
 }
 
 interface ForgotPasswordPayload {
-  name: string;
+  email: string;
 }
 
 interface VerifyTokenPayload {

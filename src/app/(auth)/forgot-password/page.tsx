@@ -2,7 +2,6 @@
 
 import { forgotPasswordSchema } from "@/utils/yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
@@ -12,7 +11,6 @@ type FormData = yup.InferType<typeof forgotPasswordSchema>;
 export default function ForgotPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const router = useRouter();
 
   const {
     register,
@@ -40,8 +38,14 @@ export default function ForgotPassword() {
       }
 
       setSuccess("Email Sent Successfully please check you email");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.log(err.message);
+        setError(err.message);
+      } else {
+        console.log("Unknown error", error);
+        setError("Unknown error");
+      }
     }
   };
 

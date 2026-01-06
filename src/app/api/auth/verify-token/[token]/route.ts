@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyToken } from "@/service/auth";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { token: string } }
+  request: Request,
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const { token } = await params;
@@ -16,12 +16,12 @@ export async function GET(
     }
 
     const data = await verifyToken({ token });
-    
+
     return NextResponse.json(data, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { message: err.message || "Invalid or expired token" },
-      { status: 400 }
-    );
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Invalid or expired token";
+
+    return NextResponse.json({ message }, { status: 400 });
   }
 }

@@ -23,15 +23,21 @@ export default function VerifyTokenPage() {
         }
 
         router.replace(`/reset-password?token=${token}`);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.log(err.message);
+          setError(err.message);
+        } else {
+          console.log("Unknown error", error);
+          setError("Unknown error");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     run();
-  }, [token, router]);
+  }, [token, router, error]);
 
   if (loading) return <p className="text-center mt-10">Verifying token...</p>;
   if (error)

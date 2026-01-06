@@ -58,8 +58,14 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push("/signin");
       }, 1500);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.log(err.message);
+        setError(err.message);
+      } else {
+        console.log("Unknown error", error);
+        setError("Unknown error");
+      }
     }
   };
 

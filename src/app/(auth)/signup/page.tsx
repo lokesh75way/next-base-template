@@ -42,11 +42,16 @@ export default function SignUp() {
       setSuccess("Account created successfully. Please login.");
 
       router.push("/signin");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.log(err.message);
+        setError(err.message);
+      } else {
+        console.log("Unknown error", error);
+        setError("Unknown error");
+      }
     }
   };
-
 
   return (
     <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">

@@ -7,10 +7,10 @@ export async function POST(req: Request) {
     const data = await forgotPassword(body);
 
     return NextResponse.json(data, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { message: err.message || "Registration failed" },
-      { status: 400 }
-    );
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Forgot Password Failed";
+
+    return NextResponse.json({ message }, { status: 400 });
   }
 }

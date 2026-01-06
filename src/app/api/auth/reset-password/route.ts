@@ -15,10 +15,9 @@ export async function PATCH(req: NextRequest) {
     const data = await resetPassword({ token, password });
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { message: err.message || "Reset password failed" },
-      { status: 400 }
-    );
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Reset password failed";
+    return NextResponse.json({ message }, { status: 400 });
   }
 }
